@@ -13,4 +13,5 @@ class USBController(Service):
     def protocol(self):
         return self.port.protocol if self.protocol else None
     def startService(self):
+        log.msg('Attempting to open %s at %dbps...' % (self.device, self.baudrate))
         self.port = SerialPort(pbLuaSerialProtocol(), self.device, reactor, baudrate=self.baudrate)
