@@ -7,6 +7,7 @@ from twisted.internet import reactor
 from twisted.python import log, usage
 
 from lib.main import invokable
+from lib.log import setupLogging
 
 from controller import USBController
 from manhole import runWithProtocol, ConsoleManhole
@@ -15,7 +16,7 @@ class RobotOptions(usage.Options):
     optParameters = [
         ['baudrate', 'b', 38400, 'Serial baudrate [default: 38400]'],
         ['device', 'd', None, 'Serial Port device'],
-        ['log', 'l', '/tmp/robot.log', 'Path for logfile'],
+        ['log', 'l', None, 'Path for logfile'],
     ]
     def postOptions(self):
         try:
@@ -39,7 +40,7 @@ def robot(argv):
         print '%s: Try --help for usage details.' % (argv[0])
         raise SystemExit(1)
 
-    log.startLogging(file(options['log'], 'w'))
+    setupLogging(options.opts['log'])
 
     usbController = UC = USBController(options.opts['device'], options.opts['baudrate'])
 
