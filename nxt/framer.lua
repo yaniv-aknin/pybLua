@@ -14,8 +14,6 @@ function Framer:New(UpperCallback, TransportCallback)
     return instance
 end
 
---!newfile
-
 function Framer:DataReceived(data)
     self.unprocessed = data
     while (self.unprocessed ~= "") do
@@ -31,8 +29,6 @@ function Framer:DataReceived(data)
     end
 end
 
---!newfile
-
 function Framer:DoLength()
     if (#self.buffer >= 4) then
         self.length = tonumber(string.sub(self.buffer, 1, 4), 16)
@@ -41,8 +37,6 @@ function Framer:DoLength()
         self.buffer = ""
     end
 end
-
---!newfile
 
 function Framer:DoData()
     if (#self.buffer >= self.length) then
@@ -54,8 +48,6 @@ function Framer:DoData()
         return self.upper(frame)
     end
 end
-
---!newfile
 
 function Framer:SendFrame(payload)
     if (#payload > (2^16-4)) then

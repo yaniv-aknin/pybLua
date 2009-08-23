@@ -1,11 +1,16 @@
 from twisted.internet.protocol import Protocol
 from twisted.python import log
 
+def isPrompt(data):
+    data = data.splitlines()[-1].strip()
+    return data in ('>', '>>')
+
 class pbLuaSerialProtocol(Protocol):
     knownStates = []
     def __init__(self):
         self.states = dict((cls, cls(self)) for cls in self.knownStates)
         self.state = None
+        self.outgoing = []
     def setState(self, state):
         if self.state is not None:
             self.state.exit()
@@ -43,7 +48,7 @@ class pbLuaInitializing(pbLuaState):
         pbLuaState.enter(self)
         self.parent.transport.write('\n')
     def dataReceived(self, data):
-        if data.strip() == '>':
+        if isPrompt(data):
             self.parent.setState(pbLuaConnected)
         else:
             log.msg('desired prompt, received %r instead' % (data,))
@@ -56,3 +61,21 @@ class pbLuaConnected(pbLuaState):
         log.msg('received: ' + data.strip())
     def connectionLost(self, reason):
         log.msg('connected connection lost: %s' % (reason,))
+
+@pbLuaState.decorate
+class pbLuaLoading(pbLuaState):
+    def enter(self):
+        self.sendLine()
+    def sendLine(self):
+        line = self.parent.outgoing.pop(0)
+        log.msg('sent: ' + line)
+        self.parent.transport.write(line + '\n')
+    def dataReceived(self, data):
+        if not isPrompt(data):
+            return
+        if self.parent.outgoing:
+            self.sendLine()
+        else:
+            self.parent.setState(pbLuaConnected)
+    def connectionLost(self, reason):
+        log.msg('loading connection lost: %s' % (reason,))

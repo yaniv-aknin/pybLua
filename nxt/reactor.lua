@@ -13,8 +13,6 @@ function Reactor:New()
     return instance
 end
 
---!newfile
-
 function Reactor:AddEvent(interval, data_source, predicate, callback)
     local interval = interval or 1
     local data_source = data_source or function() return true end
@@ -28,8 +26,6 @@ function Reactor:AddEvent(interval, data_source, predicate, callback)
                    callback=callback}
     self:InsertEventAndResortEvents(event)
 end
-
---!newfile
 
 function Reactor:ComputeNextTime(interval)
     return nxt.TimerRead() + interval
@@ -45,8 +41,6 @@ function Reactor:ResumeEvent(event)
     self:InsertEventAndResortEvents(event)
 end
 
---!newfile
-
 function Reactor:TestAbortButton()
     if nxt.ButtonRead() == 0x1 then -- 0x1: rectangular grey button
         nxt.SoundTone()
@@ -57,8 +51,6 @@ function Reactor:TestAbortButton()
         error('abort button pressed')
     end
 end
-
---!newfile
 
 function Reactor:Run()
     local data
@@ -79,8 +71,6 @@ function Reactor:Run()
     end
 end
 
---!newfile
-
 function Reactor:ConditionalPopEvent()
     if (self.events[#self.events].next_call <= nxt.TimerRead()) then
         return table.remove(self.events)
@@ -88,8 +78,6 @@ function Reactor:ConditionalPopEvent()
         return nil
     end
 end
-
---!newfile
 
 function Reactor:HandleEvent(event)
     local datum = event.data_source()
