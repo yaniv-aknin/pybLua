@@ -1,5 +1,6 @@
 import sys
 import os
+from functools import partial
 
 from twisted.application import internet
 from twisted.internet import reactor
@@ -7,14 +8,14 @@ from twisted.python import log, usage
 
 from lib.main import invokable
 
-from manhole import ManholeTelnetFactory
 from controller import USBController
+from manhole import runWithProtocol, ConsoleManhole
 
 class RobotOptions(usage.Options):
     optParameters = [
         ['baudrate', 'b', 38400, 'Serial baudrate [default: 38400]'],
         ['device', 'd', None, 'Serial Port device'],
-        ['port', 'p', 2323, 'Port for the Telnet manhole daemon'],
+        ['log', 'l', '/tmp/robot.log', 'Path for logfile'],
     ]
     def postOptions(self):
         try:
@@ -38,9 +39,8 @@ def robot(argv):
         print '%s: Try --help for usage details.' % (argv[0])
         raise SystemExit(1)
 
-    log.startLogging(sys.stdout)
+    log.startLogging(file(options['log'], 'w'))
 
     usbController = UC = USBController(options.opts['device'], options.opts['baudrate'])
-    internet.TCPServer(options.opts['port'], ManholeTelnetFactory(locals()),
-                       interface='127.0.0.1').startService()
-    reactor.run()
+
+    runWithProtocol(partial(ConsoleManhole, locals()))
