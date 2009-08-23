@@ -18,37 +18,6 @@ from twisted.conch.manhole import ColoredManhole
 class UnexpectedOutputError(Exception):
     pass
 
-class TerminalProcessProtocol(protocol.ProcessProtocol):
-    def __init__(self, proto):
-        self.proto = proto
-        self.onConnection = defer.Deferred()
-
-    def connectionMade(self):
-        self.proto.makeConnection(self)
-        self.onConnection.callback(None)
-        self.onConnection = None
-
-    def write(self, bytes):
-        self.transport.write(bytes)
-
-    def outReceived(self, bytes):
-        self.proto.dataReceived(bytes)
-
-    def errReceived(self, bytes):
-        self.transport.loseConnection()
-        if self.proto is not None:
-            self.proto.connectionLost(failure.Failure(UnexpectedOutputError(bytes)))
-            self.proto = None
-
-    def childConnectionLost(self, childFD):
-        if self.proto is not None:
-            self.proto.childConnectionLost(childFD)
-
-    def processEnded(self, reason):
-        if self.proto is not None:
-            self.proto.connectionLost(reason)
-            self.proto = None
-
 
 class ConsoleManhole(ColoredManhole):
     """
