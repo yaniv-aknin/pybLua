@@ -9,8 +9,8 @@ from twisted.python import log, usage
 from lib.main import invokable
 from lib.log import setupLogging
 
-from controller import USBController
-from manhole import runWithProtocol, ConsoleManhole
+from usb import USBController
+from stdio import runWithProtocol, ConsoleManhole
 
 class RobotOptions(usage.Options):
     optParameters = [
