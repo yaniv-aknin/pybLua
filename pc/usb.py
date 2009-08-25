@@ -1,12 +1,12 @@
 from functools import partial
 
-from twisted.internet import reactor
+from twisted.internet import reactor, protocol
 from twisted.internet.threads import deferToThread
 from twisted.application.service import Service
 from twisted.internet.serialport import SerialPort
 from twisted.python import log
 
-from pblua_serial import pbLuaSerialProtocol, pbLuaInitializing, pbLuaConnected, pbLuaLoading
+from pblua_serial import pbLuaSerialProtocol, pbLuaInitializing, pbLuaConnected, pbLuaLoading, pbLuaTerminal
 from recipe import loadRecipeLines
 
 def requireState(state):
@@ -31,7 +31,7 @@ class USBController(Service):
 
     def startConnection(self):
         log.msg('opening %s at %s' % (self.device, self.baudrate))
-        self.port = SerialPort(pbLuaSerialProtocol(), self.device, reactor, baudrate=self.baudrate)
+        self.port = SerialPort(pbLuaSerialProtocol(self), self.device, reactor, baudrate=self.baudrate)
 
     def loseConnection(self):
         log.msg('closing %s' % (self.device))
@@ -48,3 +48,14 @@ class USBController(Service):
     def loadRecipe(self, path):
         self.protocol.outgoing = loadRecipeLines(path)
         self.protocol.setState(pbLuaLoading)
+
+    @requireState(pbLuaConnected)
+    def assumeStdioControl(self):
+        self.protocol.setState(pbLuaTerminal)
+        return StdioSerialTerminalProtocol(self.port)
+
+class StdioSerialTerminalProtocol(protocol.Protocol):
+    def __init__(self, serial):
+        self.serial = serial
+    def keystrokeReceived(self, keyID, modifier):
+        self.serial.write(keyID)

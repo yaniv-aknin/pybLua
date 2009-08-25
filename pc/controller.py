@@ -12,3 +12,5 @@ class Controller(MultiService):
         self.stdio = StdIOController()
         self.stdio.switchTerminalProtocol(ConsoleManhole(dict(C=self, SC=self.stdio, UC=self.usb)))
         self.stdio.setServiceParent(self)
+    def terminal(self):
+        self.stdio.switchTerminalProtocol(self.usb.assumeStdioControl())

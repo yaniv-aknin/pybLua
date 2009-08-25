@@ -15,16 +15,18 @@ class StdIOController(Service):
         self.protocol = ProtocolSwitcher()
         self.fd = None
         self.oldSettings = None
+        self.transport = None
     def startService(self):
         self.fd = sys.__stdin__.fileno()
         self.oldSettings = termios.tcgetattr(self.fd)
         tty.setraw(self.fd)
-        stdio.StandardIO(ServerProtocol(self.protocol))
+        self.transport = stdio.StandardIO(ServerProtocol(self.protocol))
     def stopService(self):
         termios.tcsetattr(self.fd, termios.TCSANOW, self.oldSettings)
         os.write(self.fd, "\r\x1bc\r")
         self.fd = None
         self.oldSettings = None
+        self.transport = None
     def switchTerminalProtocol(self, protocol):
         self.protocol.switch(protocol)
 

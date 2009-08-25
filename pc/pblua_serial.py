@@ -1,21 +1,30 @@
 from twisted.internet.protocol import Protocol
 from twisted.python import log
 
+class InvalidTransition(Exception):
+    pass
+
 def isPrompt(data):
     data = data.splitlines()[-1].strip()
     return data in ('>', '>>')
 
 class pbLuaSerialProtocol(Protocol):
     knownStates = []
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
         self.states = dict((cls, cls(self)) for cls in self.knownStates)
         self.state = None
         self.outgoing = []
     def setState(self, state):
         if self.state is not None:
             self.state.exit()
+        previousState = self.state
         self.state = self.states[state]
-        self.state.enter()
+        try:
+            self.state.enter(previousState)
+        except InvalidTransition, error:
+            log.err(error)
+            self.state = previousState
     def connectionMade(self):
         self.setState(pbLuaInitializing)
     def dataReceived(self, data):
@@ -27,8 +36,8 @@ class pbLuaState:
     def __init__(self, parent):
         self.parent = parent
         self.transport = parent.transport
-    def enter(self):
-        log.msg('settings state: %s' % (self.__class__.__name__,))
+    def enter(self, previousState):
+        log.msg('state: %s -> %s' % (previousState.__class__.__name__, self.__class__.__name__,))
     def exit(self):
         pass
     def connectionMade(self):
@@ -44,8 +53,8 @@ class pbLuaState:
 
 @pbLuaState.decorate
 class pbLuaInitializing(pbLuaState):
-    def enter(self):
-        pbLuaState.enter(self)
+    def enter(self, previousState):
+        pbLuaState.enter(self, previousState)
         self.parent.transport.write('\n')
     def dataReceived(self, data):
         if isPrompt(data):
@@ -64,7 +73,8 @@ class pbLuaConnected(pbLuaState):
 
 @pbLuaState.decorate
 class pbLuaLoading(pbLuaState):
-    def enter(self):
+    def enter(self, previousState):
+        pbLuaState.enter(self, previousState)
         self.sendLine()
     def sendLine(self):
         line = self.parent.outgoing.pop(0)
@@ -79,3 +89,8 @@ class pbLuaLoading(pbLuaState):
             self.parent.setState(pbLuaConnected)
     def connectionLost(self, reason):
         log.msg('loading connection lost: %s' % (reason,))
+
+@pbLuaState.decorate
+class pbLuaTerminal(pbLuaState):
+    def dataReceived(self, data):
+        self.parent.parent.parent.stdio.transport.write(data)
