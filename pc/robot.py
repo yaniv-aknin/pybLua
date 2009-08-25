@@ -1,16 +1,13 @@
 import sys
 import os
-from functools import partial
 
-from twisted.application import internet
 from twisted.internet import reactor
 from twisted.python import log, usage
 
 from lib.main import invokable
 from lib.log import setupLogging
 
-from usb import USBController
-from stdio import runWithProtocol, ConsoleManhole
+from controller import Controller
 
 class RobotOptions(usage.Options):
     optParameters = [
@@ -42,6 +39,7 @@ def robot(argv):
 
     setupLogging(options.opts['log'])
 
-    usbController = UC = USBController(options.opts['device'], options.opts['baudrate'])
+    controller = Controller(options)
+    controller.startService()
+    reactor.run()
 
-    runWithProtocol(partial(ConsoleManhole, locals()))
