@@ -9,16 +9,6 @@ from twisted.python import log
 from pblua_serial import pbLuaSerialProtocol, pbLuaInitializing, pbLuaConnected, pbLuaLoading, pbLuaTerminal
 from recipe import loadRecipeLines
 
-def requireState(state):
-    def decor(func):
-        def callable(self, *args, **kwargs):
-            assert self.protocol and self.protocol.state is self.protocol.states[state]
-            return func(self, *args, **kwargs)
-        callable.__name__ = func.__name__
-        callable.__doc__ = func.__doc__
-        return callable
-    return decor
-
 class USBController(Service):
     def __init__(self, device, baudrate):
         self.device = device
@@ -44,12 +34,10 @@ class USBController(Service):
     def stopService(self):
         self.loseConnection()
 
-    @requireState(pbLuaConnected)
     def loadRecipe(self, path):
         self.protocol.outgoing = loadRecipeLines(path)
         self.protocol.setState(pbLuaLoading)
 
-    @requireState(pbLuaConnected)
     def assumeStdioControl(self):
         self.protocol.setState(pbLuaTerminal)
         return StdioSerialTerminalProtocol(self.port)
