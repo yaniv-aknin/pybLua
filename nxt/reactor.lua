@@ -1,5 +1,6 @@
 Reactor = {
     running = false,
+    connected = false,
     events = {}
 }
 
@@ -7,8 +8,8 @@ function Reactor:New()
     local instance = {}
     setmetatable(instance, self)
     self.__index = self
-    IO.initialize()
-    instance.framer = Framer:New(print, IO.write)
+    nxt.BtStreamMode(1)
+    instance.framer = Framer:New(print, function(data, connection) print('lambda', data, connection) end)
     self:AddEvent(2500, nil, nil, function() nxt.SoundTone() end)
     return instance
 end
@@ -47,8 +48,23 @@ function Reactor:TestAbortButton()
         repeat
             --
         until nxt.ButtonRead() == 0x0
-        nxt.SoundTone()
+        nxt.SoundTone(500)
         error('abort button pressed')
+    end
+end
+
+
+function Reactor:TestBTConnection()
+    local current = (nxt.band(nxt.BtGetStatus(), 2) ~= 0) -- 0x02: BT_STATE_CONNECTED
+    if current ~= self.connected then
+        self.connected = current
+        if current then
+            nxt.SoundTone(2000)
+            self.framer:ConnectionMade()
+        else
+            nxt.SoundTone(500)
+            self.framer:ConnectionLost()
+        end
     end
 end
 
@@ -58,7 +74,8 @@ function Reactor:Run()
     self.running = true
     while (self.running) do
         self:TestAbortButton()
-        data = IO.read()
+        self:TestBTConnection()
+        data = nxt.BtStreamRecv()
         if ((data ~= nil) and (#data > 0)) then
             self.framer:DataReceived(data)
         end

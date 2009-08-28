@@ -1,7 +1,6 @@
 Framer = {
     STATES = {DATA=0, LENGTH=1},
     buffer = "",
-    least = nil,
     length = nil,
     state = nil
 }
@@ -12,6 +11,16 @@ function Framer:New(UpperCallback, TransportCallback)
     self.__index = self
     instance.state = Framer.STATES.LENGTH
     return instance
+end
+
+function Framer:ConnectionMade()
+    self:SendFrame('pyblua-1')
+end
+
+function Framer:ConnectionLost()
+    self.state = Framer.STATES.LENGTH
+    self.buffer = ""
+    self.length = nil
 end
 
 function Framer:DataReceived(data)
@@ -53,5 +62,5 @@ function Framer:SendFrame(payload)
     if (#payload > (2^16-4)) then
         error(string.format('bad msg len: %d > 2^16', #payload))
     end
-    return self.lower(string.format('%04x%s', #payload, payload))
+    return nxt.BtStreamSend(0, string.format('%04x%s', #payload, payload))
 end
