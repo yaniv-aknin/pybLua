@@ -1,16 +1,21 @@
 from functools import partial
 
-from twisted.internet.protocol import Protocol
+from twisted.protocols.basic import LineOnlyReceiver
 from twisted.python import log
 
+class UnexpectedOutput(Exception):
+    pass
 class InvalidTransition(Exception):
     pass
 
-def isPrompt(data):
-    data = data.splitlines()[-1].strip()
-    return data in ('>', '>>')
+PROMPTS = ('>', '>>')
 
-class pbLuaSerialProtocol(Protocol):
+def isPromptPrefixed(line):
+    return line.startswith(PROMPTS)
+def isPrompt(line):
+    return line.strip() in PROMPTS
+
+class pbLuaSerialProtocol(LineOnlyReceiver):
     knownStates = []
     def __init__(self, parent):
         self.parent = parent
@@ -28,8 +33,8 @@ class pbLuaSerialProtocol(Protocol):
         self.state.enter(previousState)
     def connectionMade(self):
         self.setState(pbLuaInitializing)
-    def dataReceived(self, data):
-        return self.state.dataReceived(data)
+    def lineReceived(self, line):
+        return self.state.lineReceived(line)
     def connectionLost(self, reason):
         return self.state.connectionLost(reason)
 
@@ -51,7 +56,7 @@ class pbLuaState:
         pass
     def connectionMade(self):
         pass
-    def dataReceived(self, data):
+    def lineReceived(self, line):
         pass
     def connectionLost(self, reason):
         pass
@@ -59,18 +64,27 @@ class pbLuaState:
 class pbLuaInitializing(pbLuaState):
     def enter(self, previousState):
         pbLuaState.enter(self, previousState)
+        self.attempts = 0
+        self.sendNewLineToGetPrompt()
+    def sendNewLineToGetPrompt(self):
         self.parent.transport.write('\n')
-    def dataReceived(self, data):
-        if isPrompt(data):
+        self.attempts += 1
+    def lineReceived(self, line):
+        if isPrompt(line):
             self.parent.setState(pbLuaConnected)
         else:
-            log.msg('desired prompt, received %r instead' % (data,))
+            if self.attempts > 1:
+                log.msg('desired prompt, received %r instead' % (line,))
+            if self.attempts < 2:
+                self.sendNewLineToGetPrompt()
+            else:
+                log.err(UnexpectedOutput('unable to get prompt'))
     def connectionLost(self, reason):
         log.msg('init connection lost: %s' % (reason,))
 
 class pbLuaConnected(pbLuaState):
-    def dataReceived(self, data):
-        log.msg('received: ' + data.strip())
+    def lineReceived(self, line):
+        log.msg('received: ' + line.strip())
     def connectionLost(self, reason):
         log.msg('connected connection lost: %s' % (reason,))
 
@@ -83,13 +97,15 @@ class pbLuaLoading(pbLuaState):
         line = self.parent.outgoing.pop(0)
         log.msg('sent: ' + line)
         self.parent.transport.write(line + '\n')
-    def dataReceived(self, data):
-        if not isPrompt(data):
-            return
-        if self.parent.outgoing:
-            self.sendLine()
-        else:
+    def lineReceived(self, line):
+        if not isPromptPrefixed(line):
+            log.err(UnexpectedOutput('unexpected: %s' % (line,)))
             self.parent.setState(pbLuaConnected)
+        else:
+            if self.parent.outgoing:
+                self.sendLine()
+            else:
+                self.parent.setState(pbLuaConnected)
     def connectionLost(self, reason):
         log.msg('loading connection lost: %s' % (reason,))
 

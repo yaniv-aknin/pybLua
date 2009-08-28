@@ -7,10 +7,16 @@ class ProtocolStack(object):
         self._protocolStack = [initialProtocol] if initialProtocol else []
     def __call__(self):
         return self
-    def __getattr__(self, attribute_name):
+    def __getattr__(self, name):
         if not self._protocolStack:
             raise AttributeError('tried gettting an attribute with no concrete protocol')
-        return getattr(self._protocolStack[-1], attribute_name)
+        return getattr(self._protocolStack[-1], name)
+    def __setattr__(self, name, value):
+        if name in ('_protocolStack',):
+            return super(ProtocolStack, self).__setattr__(name, value)
+        if not self._protocolStack:
+            raise AttributeError('tried gettting an attribute with no concrete protocol')
+        setattr(self._protocolStack[-1], name, value)
     def __repr__(self):
         return '<%s using %r>' % (self.__class__.__name__,
                                   None if not self._protocolStack else self._protocolStack[-1])

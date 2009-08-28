@@ -1,7 +1,11 @@
+import os
+
 from twisted.application.service import MultiService
 from twisted.conch.stdio import ConsoleManhole
 from twisted.conch.manhole import CTRL_D
 from twisted.conch.insults.insults import ServerProtocol
+
+from lego import PROJECT_ROOT
 
 from usb import USBController
 from stdio import StdIOController
@@ -20,6 +24,11 @@ class Controller(MultiService):
         MultiService.startService(self)
         if self.options.opts['terminal']:
             self.terminal()
+    def loadRecipe(self, path):
+        if os.path.isfile(os.path.join(PROJECT_ROOT, 'nxt', path)):
+            self.usb.loadRecipe(os.path.join(PROJECT_ROOT, 'nxt', path))
+        else:
+            self.usb.loadRecipe(path)
     def terminal(self):
         self.stdio.protocolStack.push(TerminalBridgeProtocol(self.usb.port, {CTRL_D: self.manhole}))
         self.usb.protocolStack.push(BridgeProtocol(self.stdio.stdio))
