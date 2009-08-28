@@ -11,11 +11,7 @@ PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from lib.main import invokables
-
-import pc.robot
+from pc.robot import main
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1 or sys.argv[1] not in invokables:
-        sys.exit(print('usage: %s <%s> [...]' % (sys.argv[0], ", ".join(invokables))))
-    invokables[sys.argv[1]](sys.argv[1:])
+    main(sys.argv)

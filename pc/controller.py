@@ -5,8 +5,6 @@ from twisted.conch.stdio import ConsoleManhole
 from twisted.conch.manhole import CTRL_D
 from twisted.conch.insults.insults import ServerProtocol
 
-from lego import PROJECT_ROOT
-
 from usb import USBController
 from stdio import StdIOController
 from protocol_utils import TerminalBridgeProtocol
@@ -27,6 +25,7 @@ class Controller(MultiService):
         if self.options.opts['terminal']:
             self.terminal()
     def loadRecipe(self, path):
+        from lego import PROJECT_ROOT
         if os.path.isfile(os.path.join(PROJECT_ROOT, 'nxt', path)):
             path = (os.path.join(PROJECT_ROOT, 'nxt', path))
         self.usb.setState(pbLuaLoading, loadRecipeLines(path))

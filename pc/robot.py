@@ -6,8 +6,7 @@ import os
 from twisted.internet import reactor
 from twisted.python import log, usage
 
-from lib.main import invokable
-from lib.log import setupLogging
+from log import setupLogging
 
 from controller import Controller
 
@@ -41,8 +40,7 @@ class RawTTYContext:
         termios.tcsetattr(self.fd, termios.TCSANOW, self.oldSettings)
         os.write(self.fd, "\r\x1bc\r")
 
-@invokable
-def robot(argv):
+def main(argv):
     options = RobotOptions()
     try:
         options.parseOptions(argv[1:])
