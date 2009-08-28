@@ -95,5 +95,3 @@ class pbLuaLoading(pbLuaState):
 
 class pbLuaTerminal(pbLuaState):
     enterFrom=(pbLuaConnected,)
-    def dataReceived(self, data):
-        self.parent.parent.parent.stdio.transport.write(data)

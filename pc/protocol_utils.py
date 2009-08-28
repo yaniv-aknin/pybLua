@@ -1,3 +1,5 @@
+from twisted.python import log
+
 class ProtocolSwitcher:
     def __init__(self, initialProtocol=None):
         self._protocol = initialProtocol
@@ -18,3 +20,13 @@ class ProtocolSwitcher:
         self._protocol.makeConnection(transport)
     def switch(self, protocol):
         self._protocol = protocol
+
+class BridgeProtocol:
+    def __init__(self, transport):
+        self.transport = transport
+    def keystrokeReceived(self, keyID, modifier):
+        self.transport.write(keyID)
+    def dataReceived(self, data):
+        self.transport.write(data)
+    def connectionLost(self, reason):
+        pass

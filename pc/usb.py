@@ -21,7 +21,7 @@ class USBController(Service):
         return self.port.protocol if self.port else None
     def startConnection(self):
         log.msg('opening %s at %s' % (self.device, self.baudrate))
-        self.port = SerialPort(pbLuaSerialProtocol(self), self.device, reactor, baudrate=self.baudrate)
+        self.port = SerialPort(self.switcher, self.device, reactor, baudrate=self.baudrate)
     def loseConnection(self):
         log.msg('closing %s' % (self.device))
         self.protocol.transport.loseConnection()
@@ -35,14 +35,5 @@ class USBController(Service):
     def loadRecipe(self, path):
         self.protocol.outgoing = loadRecipeLines(path)
         self.protocol.setState(pbLuaLoading)
-    def switchTerminalProtocol(self, protocol):
+    def switchSerialProtocol(self, protocol):
         self.switcher.switch(protocol)
-
-class StdioSerialTerminalProtocol(protocol.Protocol):
-    def __init__(self, serial):
-        self.serial = serial
-    def keystrokeReceived(self, keyID, modifier):
-        self.serial.write(keyID)
-    def assumeStdioControl(self):
-        self.protocol.setState(pbLuaTerminal)
-        return StdioSerialTerminalProtocol(self.port)
