@@ -18,7 +18,7 @@ class pbLuaSerialProtocol(Protocol):
         self.state = None
         self.outgoing = []
     def setState(self, state):
-        if state.enterFrom and self.state not in state.enterFrom:
+        if state.enterFrom and self.state.__class__ not in state.enterFrom:
             raise InvalidTransition('invalid state change: %s -> %s' % (self.state, state))
         log.msg('state: %s -> %s' % (self.state, state))
         if self.state is not None:
@@ -33,14 +33,13 @@ class pbLuaSerialProtocol(Protocol):
     def connectionLost(self, reason):
         return self.state.connectionLost(reason)
 
-def pbLuaStateDecorator(cls=None, enterFrom=tuple()):
-    if cls is None:
-        return partial(pbLuaStateDecorator, enterFrom=enterFrom)
-    cls.enterFrom = enterFrom
-    pbLuaSerialProtocol.knownStates.append(cls)
-    return cls
-
 class pbLuaState:
+    enterFrom = tuple()
+    class __metaclass__(type):
+        def __init__(cls, name, bases, env):
+            pbLuaSerialProtocol.knownStates.append(cls)
+        def __str__(cls):
+            return cls.__name__
     def __init__(self, parent):
         self.parent = parent
         self.transport = parent.transport
@@ -57,7 +56,6 @@ class pbLuaState:
     def connectionLost(self, reason):
         pass
 
-@pbLuaStateDecorator
 class pbLuaInitializing(pbLuaState):
     def enter(self, previousState):
         pbLuaState.enter(self, previousState)
@@ -70,15 +68,14 @@ class pbLuaInitializing(pbLuaState):
     def connectionLost(self, reason):
         log.msg('init connection lost: %s' % (reason,))
 
-@pbLuaStateDecorator
 class pbLuaConnected(pbLuaState):
     def dataReceived(self, data):
         log.msg('received: ' + data.strip())
     def connectionLost(self, reason):
         log.msg('connected connection lost: %s' % (reason,))
 
-@pbLuaStateDecorator(enterFrom=(pbLuaConnected,))
 class pbLuaLoading(pbLuaState):
+    enterFrom=(pbLuaConnected,)
     def enter(self, previousState):
         pbLuaState.enter(self, previousState)
         self.sendLine()
@@ -96,7 +93,7 @@ class pbLuaLoading(pbLuaState):
     def connectionLost(self, reason):
         log.msg('loading connection lost: %s' % (reason,))
 
-@pbLuaStateDecorator(enterFrom=(pbLuaConnected,))
 class pbLuaTerminal(pbLuaState):
+    enterFrom=(pbLuaConnected,)
     def dataReceived(self, data):
         self.parent.parent.parent.stdio.transport.write(data)
