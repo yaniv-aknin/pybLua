@@ -82,8 +82,6 @@ class pbLuaInitializing(pbLuaState):
                 self.sendNewLineToGetPrompt()
             else:
                 log.err(UnexpectedOutput('unable to get prompt'))
-    def connectionLost(self, reason):
-        log.msg('init connection lost: %s' % (reason,))
 
 class pbLuaConnected(pbLuaState):
     pass
@@ -108,8 +106,6 @@ class pbLuaLoading(pbLuaState):
                 self.sendLine()
             else:
                 self.parent.setState(self.nextState)
-    def connectionLost(self, reason):
-        log.msg('loading connection lost: %s' % (reason,))
 
 class pbLuaTerminal(pbLuaState):
     enterFrom=(pbLuaConnected, pbLuaInitializing)
