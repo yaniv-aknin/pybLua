@@ -8,20 +8,20 @@ from twisted.python import log
 
 from pblua_serial import pbLuaSerialProtocol, pbLuaInitializing, pbLuaConnected, pbLuaLoading, pbLuaTerminal
 from recipe import loadRecipeLines
-from protocol_utils import ProtocolSwitcher
+from protocol_utils import ProtocolStack
 
 class USBController(Service):
     def __init__(self, device, baudrate, initialProtocolFactory=pbLuaSerialProtocol):
         self.device = device
         self.baudrate = baudrate
         self.port = None
-        self.switcher = ProtocolSwitcher(initialProtocolFactory(self))
+        self.protocolStack = ProtocolStack(initialProtocolFactory(self))
     @property
     def protocol(self):
         return self.port.protocol if self.port else None
     def startConnection(self):
         log.msg('opening %s at %s' % (self.device, self.baudrate))
-        self.port = SerialPort(self.switcher, self.device, reactor, baudrate=self.baudrate)
+        self.port = SerialPort(self.protocolStack, self.device, reactor, baudrate=self.baudrate)
     def loseConnection(self):
         log.msg('closing %s' % (self.device))
         self.protocol.transport.loseConnection()
@@ -35,5 +35,3 @@ class USBController(Service):
     def loadRecipe(self, path):
         self.protocol.outgoing = loadRecipeLines(path)
         self.protocol.setState(pbLuaLoading)
-    def switchSerialProtocol(self, protocol):
-        self.switcher.switch(protocol)
