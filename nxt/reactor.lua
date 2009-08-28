@@ -9,7 +9,7 @@ function Reactor:New()
     self.__index = self
     IO.initialize()
     instance.framer = Framer:New(print, IO.write)
-    self:AddEvent(2500, nil, nil, function cb() nxt.SoundTone() end)
+    self:AddEvent(2500, nil, nil, function() nxt.SoundTone() end)
     return instance
 end
 
