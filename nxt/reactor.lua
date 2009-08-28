@@ -9,7 +9,7 @@ function Reactor:New()
     setmetatable(instance, self)
     self.__index = self
     nxt.BtStreamMode(1)
-    instance.framer = Framer:New(print, function(data, connection) print('lambda', data, connection) end)
+    instance.framer = Framer:New(function(data) nxt.DisplayText(data) end)
     self:AddEvent(2500, nil, nil, function() nxt.SoundTone() end)
     return instance
 end

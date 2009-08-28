@@ -5,8 +5,8 @@ Framer = {
     state = nil
 }
 
-function Framer:New(UpperCallback, TransportCallback)
-    local instance = {upper = UpperCallback, lower=TransportCallback}
+function Framer:New(dataSink)
+    local instance = {sink = dataSink}
     setmetatable(instance, self)
     self.__index = self
     instance.state = Framer.STATES.LENGTH
@@ -24,6 +24,7 @@ function Framer:ConnectionLost()
 end
 
 function Framer:DataReceived(data)
+    nxt.DisplayText(data)
     self.unprocessed = data
     while (self.unprocessed ~= "") do
         self.buffer = self.buffer .. self.unprocessed
@@ -39,28 +40,30 @@ function Framer:DataReceived(data)
 end
 
 function Framer:DoLength()
-    if (#self.buffer >= 4) then
-        self.length = tonumber(string.sub(self.buffer, 1, 4), 16)
+    if (#self.buffer >= 2) then
+        local high, low = string.sub(self.buffer, 1, 1), string.sub(self.buffer, 2, 2)
+        self.length = nxt.blshift(string.byte(high), 8) + string.byte(low)
+        self.unprocessed = string.sub(self.buffer, 3)
         self.state = Framer.STATES.DATA
-        self.unprocessed = string.sub(self.buffer, 5)
         self.buffer = ""
     end
 end
 
 function Framer:DoData()
     if (#self.buffer >= self.length) then
-        local frame = string.sub(self.buffer, 1, self.length)
+        local data = string.sub(self.buffer, 1, self.length)
         self.unprocessed = string.sub(self.buffer, self.length + 1)
         self.buffer = ""
         self.length = nil
         self.state = Framer.STATES.LENGTH
-        return self.upper(frame)
+        return self.sink(data)
     end
 end
 
 function Framer:SendFrame(payload)
-    if (#payload > (2^16-4)) then
-        error(string.format('bad msg len: %d > 2^16', #payload))
+    if (#payload >= (2^16)) then
+        error(string.format('bad msg len: %d >= 2^16', #payload))
     end
-    return nxt.BtStreamSend(0, string.format('%04x%s', #payload, payload))
+    high_length, low_length = nxt.brshift(#payload, 8), nxt.band(#payload, 255)
+    return nxt.BtStreamSend(0, string.char(high_length)..string.char(low_length)..payload)
 end

@@ -6,6 +6,7 @@ from twisted.conch.manhole import CTRL_D
 from twisted.conch.insults.insults import ServerProtocol
 
 from serial_io.usb import USBController
+from serial_io.bluetooth import BluetoothController
 from serial_io.protocols.pblua import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
 from stdio import StdIOController
 from protocol_utils import TerminalBridgeProtocol
@@ -17,8 +18,9 @@ class Controller(MultiService):
         self.options = options
         self.usb = USBController(options.opts['usb'])
         self.usb.setServiceParent(self)
+        self.bluetooth = BluetoothController(options.opts['bluetooth'])
         self.stdio = StdIOController()
-        self.stdio.protocolStack.push(ConsoleManhole(dict(C=self, SC=self.stdio, UC=self.usb)))
+        self.stdio.protocolStack.push(ConsoleManhole(dict(C=self, SC=self.stdio, UC=self.usb, BC=self.bluetooth)))
         self.stdio.setServiceParent(self)
     def startService(self):
         MultiService.startService(self)
