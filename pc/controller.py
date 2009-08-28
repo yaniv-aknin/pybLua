@@ -9,8 +9,9 @@ from lego import PROJECT_ROOT
 
 from usb import USBController
 from stdio import StdIOController
-from protocol_utils import TerminalBridgeProtocol, BridgeProtocol
-from pblua_serial import pbLuaRunning
+from protocol_utils import TerminalBridgeProtocol
+from pblua_serial import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
+from recipe import loadRecipeLines
 
 class Controller(MultiService):
     def __init__(self, options):
@@ -27,14 +28,13 @@ class Controller(MultiService):
             self.terminal()
     def loadRecipe(self, path):
         if os.path.isfile(os.path.join(PROJECT_ROOT, 'nxt', path)):
-            self.usb.loadRecipe(os.path.join(PROJECT_ROOT, 'nxt', path))
-        else:
-            self.usb.loadRecipe(path)
+            path = (os.path.join(PROJECT_ROOT, 'nxt', path))
+        self.usb.setState(pbLuaLoading, loadRecipeLines(path))
     def terminal(self):
         self.stdio.protocolStack.push(TerminalBridgeProtocol(self.usb.port, {CTRL_D: self.manhole}))
-        self.usb.protocolStack.push(BridgeProtocol(self.stdio.stdio))
+        self.usb.setState(pbLuaTerminal, self.stdio.stdio)
     def manhole(self, keyID):
         self.stdio.protocolStack.pop()
-        self.usb.protocolStack.pop()
+        self.usb.setState(pbLuaInitializing)
     def execute(self):
         self.usb.protocol.setState(pbLuaRunning)

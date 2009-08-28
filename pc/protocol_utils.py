@@ -25,17 +25,11 @@ class ProtocolStack(object):
     def pop(self):
         return self._protocolStack.pop()
 
-class BaseBridgeProtocol:
-    def __init__(self, transport):
+class TerminalBridgeProtocol:
+    def __init__(self, transport, keyHandlers=None):
         self.transport = transport
+        self.keyHandlers = keyHandlers or {}
     def connectionLost(self, reason):
         pass
-class TerminalBridgeProtocol(BaseBridgeProtocol):
-    def __init__(self, transport, keyHandlers=None):
-        BaseBridgeProtocol.__init__(self, transport)
-        self.keyHandlers = keyHandlers or {}
     def keystrokeReceived(self, keyID, modifier):
         self.keyHandlers.get(keyID, self.transport.write)(keyID)
-class BridgeProtocol(BaseBridgeProtocol):
-    def dataReceived(self, data):
-        self.transport.write(data)
