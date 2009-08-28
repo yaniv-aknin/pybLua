@@ -1,4 +1,6 @@
 import sys
+import tty
+import termios
 import os
 
 from twisted.internet import reactor
@@ -27,6 +29,15 @@ class RobotOptions(usage.Options):
                 raise usage.UsageError('no serial device specified and .default_device symlink missing')
             self['device'] = default_device_path
 
+class RawTTYContext:
+    def __enter__(self):
+        self.fd = sys.__stdin__.fileno()
+        self.oldSettings = termios.tcgetattr(self.fd)
+        tty.setraw(self.fd)
+    def __exit__(self, error_type, error_value, traceback):
+        termios.tcsetattr(self.fd, termios.TCSANOW, self.oldSettings)
+        os.write(self.fd, "\r\x1bc\r")
+
 @invokable
 def robot(argv):
     options = RobotOptions()
@@ -39,7 +50,7 @@ def robot(argv):
 
     setupLogging(options.opts['log'])
 
-    controller = Controller(options)
-    controller.startService()
-    reactor.run()
-
+    with RawTTYContext():
+        controller = Controller(options)
+        controller.startService()
+        reactor.run()

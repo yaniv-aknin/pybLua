@@ -1,8 +1,3 @@
-import os
-import tty
-import sys
-import termios
-
 from zope.interface import implements
 
 from twisted.internet import reactor, stdio
@@ -13,20 +8,12 @@ from twisted.conch.insults.insults import ITerminalProtocol
 class StdIOController(Service):
     def __init__(self):
         self.protocol = ProtocolSwitcher()
-        self.fd = None
-        self.oldSettings = None
-        self.transport = None
     def startService(self):
-        self.fd = sys.__stdin__.fileno()
-        self.oldSettings = termios.tcgetattr(self.fd)
-        tty.setraw(self.fd)
-        self.transport = stdio.StandardIO(ServerProtocol(self.protocol))
+        Service.startService(self)
+        self.stdio = stdio.StandardIO(ServerProtocol(self.protocol))
     def stopService(self):
-        termios.tcsetattr(self.fd, termios.TCSANOW, self.oldSettings)
-        os.write(self.fd, "\r\x1bc\r")
-        self.fd = None
-        self.oldSettings = None
-        self.transport = None
+        Service.stopService(self)
+        self.stdio = None
     def switchTerminalProtocol(self, protocol):
         self.protocol.switch(protocol)
 
