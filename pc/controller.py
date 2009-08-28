@@ -10,6 +10,7 @@ from lego import PROJECT_ROOT
 from usb import USBController
 from stdio import StdIOController
 from protocol_utils import TerminalBridgeProtocol, BridgeProtocol
+from pblua_serial import pbLuaRunning
 
 class Controller(MultiService):
     def __init__(self, options):
@@ -35,3 +36,5 @@ class Controller(MultiService):
     def manhole(self, keyID):
         self.stdio.protocolStack.pop()
         self.usb.protocolStack.pop()
+    def execute(self):
+        self.usb.protocol.setState(pbLuaRunning)

@@ -6,7 +6,7 @@ from twisted.application.service import Service
 from twisted.internet.serialport import SerialPort
 from twisted.python import log
 
-from pblua_serial import pbLuaSerialProtocol, pbLuaInitializing, pbLuaConnected, pbLuaLoading, pbLuaTerminal
+from pblua_serial import pbLuaSerialProtocol, pbLuaLoading
 from recipe import loadRecipeLines
 from protocol_utils import ProtocolStack
 

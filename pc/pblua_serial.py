@@ -22,7 +22,7 @@ class pbLuaSerialProtocol(LineOnlyReceiver):
         self.states = dict((cls, cls(self)) for cls in self.knownStates)
         self.state = None
         self.outgoing = []
-    def setState(self, state):
+    def setState(self, state, *args, **kwargs):
         if state.enterFrom and self.state.__class__ not in state.enterFrom:
             raise InvalidTransition('invalid state change: %s -> %s' % (self.state, state))
         log.msg('state: %s -> %s' % (self.state, state))
@@ -57,9 +57,10 @@ class pbLuaState:
     def connectionMade(self):
         pass
     def lineReceived(self, line):
-        pass
+        log.msg('%s received: %s' % (self, line))
     def connectionLost(self, reason):
-        pass
+        log.msg('%s lost connection: %s' % (self, reason))
+        log.err(reason)
 
 class pbLuaInitializing(pbLuaState):
     def enter(self, previousState):
@@ -83,15 +84,13 @@ class pbLuaInitializing(pbLuaState):
         log.msg('init connection lost: %s' % (reason,))
 
 class pbLuaConnected(pbLuaState):
-    def lineReceived(self, line):
-        log.msg('received: ' + line.strip())
-    def connectionLost(self, reason):
-        log.msg('connected connection lost: %s' % (reason,))
+    pass
 
 class pbLuaLoading(pbLuaState):
     enterFrom=(pbLuaConnected,)
-    def enter(self, previousState):
+    def enter(self, previousState, autoExecute=True):
         pbLuaState.enter(self, previousState)
+        self.nextState = pbLuaRunning if autoExecute else pbLuaConnected
         self.sendLine()
     def sendLine(self):
         line = self.parent.outgoing.pop(0)
@@ -105,9 +104,20 @@ class pbLuaLoading(pbLuaState):
             if self.parent.outgoing:
                 self.sendLine()
             else:
-                self.parent.setState(pbLuaConnected)
+                self.parent.setState(self.nextState)
     def connectionLost(self, reason):
         log.msg('loading connection lost: %s' % (reason,))
 
 class pbLuaTerminal(pbLuaState):
     enterFrom=(pbLuaConnected,)
+
+class pbLuaRunning(pbLuaState):
+    enterFrom=(pbLuaConnected, pbLuaLoading)
+    def enter(self, previousState):
+        pbLuaState.enter(self, previousState)
+        self.parent.transport.write('LoaderExecute()\n\n')
+    def lineReceived(self, line):
+        if isPrompt(line):
+            self.parent.setState(pbLuaConnected)
+        elif not isPromptPrefixed(line):
+            pbLuaState.lineReceived(self, line)
