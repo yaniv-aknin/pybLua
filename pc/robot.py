@@ -15,21 +15,18 @@ class RobotOptions(usage.Options):
         ['terminal', 't', 'Start in direct terminal mode'],
     ]
     optParameters = [
-        ['baudrate', 'b', 38400, 'Serial baudrate [default: 38400]'],
-        ['device', 'd', None, 'Serial Port device'],
+        ['usb', 'u', None, 'USB Serial device'],
+        ['bluetooth', 'b', None, 'Bluetooth Serial device'],
         ['log', 'l', None, 'Path for logfile'],
     ]
     def postOptions(self):
-        try:
-            self['baudrate'] = int(self['baudrate'])
-        except ValueError:
-            raise options.UsageError('invalid baudrate')
-
-        if self['device'] is None:
-            default_device_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '.default_device')
+        for device in ('usb', 'bluetooth'):
+            if self[device] is not None:
+                continue
+            default_device_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '.default_' + device)
             if not os.path.islink(default_device_path):
-                raise usage.UsageError('no serial device specified and .default_device symlink missing')
-            self['device'] = default_device_path
+                raise usage.UsageError('no %s device specified and .default_%s symlink missing' % (device, device))
+            self[device] = default_device_path
 
 class RawTTYContext:
     def __enter__(self):

@@ -15,7 +15,7 @@ class Controller(MultiService):
     def __init__(self, options):
         MultiService.__init__(self)
         self.options = options
-        self.usb = USBController(options.opts['device'], options.opts['baudrate'])
+        self.usb = USBController(options.opts['usb'])
         self.usb.setServiceParent(self)
         self.stdio = StdIOController()
         self.stdio.protocolStack.push(ConsoleManhole(dict(C=self, SC=self.stdio, UC=self.usb)))
@@ -24,7 +24,7 @@ class Controller(MultiService):
         MultiService.startService(self)
         if self.options.opts['terminal']:
             self.terminal()
-    def loadRecipe(self, path):
+    def load(self, path):
         from lego import PROJECT_ROOT
         if os.path.isfile(os.path.join(PROJECT_ROOT, 'nxt', path)):
             path = (os.path.join(PROJECT_ROOT, 'nxt', path))

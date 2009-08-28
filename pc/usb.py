@@ -17,9 +17,9 @@ class UnableToEstablishSerialConnection(Exception):
 class USBController(Service):
     retries = 6
     interval = 3
-    def __init__(self, device, baudrate):
+    baudrate = 38400
+    def __init__(self, device):
         self.device = device
-        self.baudrate = baudrate
         self.port = None
         self.attempt = None
     @property
@@ -36,8 +36,9 @@ class USBController(Service):
             return
         try:
             self.port = SerialPort(pbLuaSerialProtocol(self), self.device, reactor, baudrate=self.baudrate)
-            log.msg('opened %s at %s' % (self.device, self.baudrate))
+            log.msg('opened %s' % (self.device,))
         except SerialException, error:
+            log.err(error)
             log.msg('unable to open %s (%d/%d retries)' % (os.path.basename(self.device), self.attempt, self.retries))
             reactor.callLater(self.interval, self._startConnection)
     def tearConnection(self):
