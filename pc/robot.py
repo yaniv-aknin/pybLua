@@ -12,6 +12,9 @@ from lib.log import setupLogging
 from controller import Controller
 
 class RobotOptions(usage.Options):
+    optFlags = [
+        ['terminal', 't', 'Start in direct terminal mode'],
+    ]
     optParameters = [
         ['baudrate', 'b', 38400, 'Serial baudrate [default: 38400]'],
         ['device', 'd', None, 'Serial Port device'],
