@@ -15,7 +15,7 @@ def isPromptPrefixed(line):
 def isPrompt(line):
     return line.strip() in PROMPTS
 
-class pbLuaSerialProtocol(LineReceiver):
+class pbLuaConsoleProtocol(LineReceiver):
     knownStates = []
     def __init__(self, parent):
         self.parent = parent
@@ -44,7 +44,7 @@ class pbLuaState:
     enterFrom = tuple()
     class __metaclass__(type):
         def __init__(cls, name, bases, env):
-            pbLuaSerialProtocol.knownStates.append(cls)
+            pbLuaConsoleProtocol.knownStates.append(cls)
         def __str__(cls):
             return cls.__name__
     def __init__(self, parent):

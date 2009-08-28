@@ -1,18 +1,13 @@
 import os
-from functools import partial
 
 from twisted.internet import reactor, protocol
-from twisted.internet.threads import deferToThread
 from twisted.application.service import Service
 from twisted.internet.serialport import SerialPort
 from twisted.python import log
 
 from serial.serialutil import SerialException
 
-from pblua_serial import pbLuaSerialProtocol
-
-class UnableToEstablishSerialConnection(Exception):
-    pass
+from protocols.pblua import pbLuaConsoleProtocol
 
 class USBController(Service):
     retries = 6
@@ -35,7 +30,7 @@ class USBController(Service):
             self.stopService()
             return
         try:
-            self.port = SerialPort(pbLuaSerialProtocol(self), self.device, reactor, baudrate=self.baudrate)
+            self.port = SerialPort(pbLuaConsoleProtocol(self), self.device, reactor, baudrate=self.baudrate)
             log.msg('opened %s' % (self.device,))
         except SerialException, error:
             log.err(error)

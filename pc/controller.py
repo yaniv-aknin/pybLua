@@ -5,10 +5,10 @@ from twisted.conch.stdio import ConsoleManhole
 from twisted.conch.manhole import CTRL_D
 from twisted.conch.insults.insults import ServerProtocol
 
-from usb import USBController
+from serial_io.usb import USBController
+from serial_io.protocols.pblua import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
 from stdio import StdIOController
 from protocol_utils import TerminalBridgeProtocol
-from pblua_serial import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
 from recipe import loadRecipeLines
 
 class Controller(MultiService):
