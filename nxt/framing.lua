@@ -5,8 +5,8 @@ Framer = {
     state = nil
 }
 
-function Framer:New(dataSink)
-    local instance = {sink = dataSink}
+function Framer:New(protocol)
+    local instance = {protocol = protocol}
     setmetatable(instance, self)
     self.__index = self
     instance.state = Framer.STATES.LENGTH
@@ -14,7 +14,7 @@ function Framer:New(dataSink)
 end
 
 function Framer:ConnectionMade()
-    self:SendFrame('pyblua-1')
+    self:SendString('pyblua-1')
 end
 
 function Framer:ConnectionLost()
@@ -24,7 +24,7 @@ function Framer:ConnectionLost()
 end
 
 function Framer:DataReceived(data)
-    nxt.DisplayText(data)
+    print(string.format('received %q', data))
     self.unprocessed = data
     while (self.unprocessed ~= "") do
         self.buffer = self.buffer .. self.unprocessed
@@ -56,11 +56,11 @@ function Framer:DoData()
         self.buffer = ""
         self.length = nil
         self.state = Framer.STATES.LENGTH
-        return self.sink(data)
+        return self.protocol:StringReceived(data)
     end
 end
 
-function Framer:SendFrame(payload)
+function Framer:SendString(payload)
     if (#payload >= (2^16)) then
         error(string.format('bad msg len: %d >= 2^16', #payload))
     end

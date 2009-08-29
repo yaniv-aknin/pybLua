@@ -9,7 +9,8 @@ function Reactor:New()
     setmetatable(instance, self)
     self.__index = self
     nxt.BtStreamMode(1)
-    instance.framer = Framer:New(function(data) nxt.DisplayText(data) end)
+    instance.protocol = Protocol:New(instance)
+    instance.framing = Framer:New(instance.protocol)
     self:AddEvent(2500, nil, nil, function() nxt.SoundTone() end)
     return instance
 end
@@ -24,8 +25,10 @@ function Reactor:AddEvent(interval, data_source, predicate, callback)
                    interval=interval,
                    data_source=data_source,
                    predicate=predicate,
-                   callback=callback}
+                   callback=callback,
+                   id=nxt.random() + nxt.random()}
     self:InsertEventAndResortEvents(event)
+    return event.id
 end
 
 function Reactor:ComputeNextTime(interval)
@@ -60,10 +63,10 @@ function Reactor:TestBTConnection()
         self.connected = current
         if current then
             nxt.SoundTone(2000)
-            self.framer:ConnectionMade()
+            self.framing:ConnectionMade()
         else
             nxt.SoundTone(500)
-            self.framer:ConnectionLost()
+            self.framing:ConnectionLost()
         end
     end
 end
@@ -77,7 +80,7 @@ function Reactor:Run()
         self:TestBTConnection()
         data = nxt.BtStreamRecv()
         if ((data ~= nil) and (#data > 0)) then
-            self.framer:DataReceived(data)
+            self.framing:DataReceived(data)
         end
         repeat
             current_event = self:ConditionalPopEvent()
@@ -99,7 +102,7 @@ end
 function Reactor:HandleEvent(event)
     local datum = event.data_source()
     if (event.predicate(datum)) then
-        if (event.callback(datum) ~= false) then
+        if (event.callback(event.id, datum) ~= false) then
             self:ResumeEvent(event)
         end
     end
