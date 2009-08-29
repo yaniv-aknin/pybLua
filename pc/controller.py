@@ -7,7 +7,7 @@ from twisted.conch.insults.insults import ServerProtocol
 
 from serial_io.usb import USBController
 from serial_io.bluetooth import BluetoothController
-from serial_io.protocols.pblua import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
+from serial_io.pblua_states import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
 from stdio import StdIOController
 from protocol_utils import TerminalBridgeProtocol
 from recipe import loadRecipeLines
