@@ -87,6 +87,7 @@ function Reactor:Run()
             if (current_event ~= nil) then
                 self:HandleEvent(current_event)
             end
+            collectgarbage()
         until (current_event == nil)
     end
 end

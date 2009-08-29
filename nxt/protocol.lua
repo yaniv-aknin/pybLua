@@ -1,6 +1,6 @@
 Protocol = {
-    OPCODES = {INCOMING = {ADD = "A", REMOVE = "R", EVAL = "E"},
-               OUTGOING = {ACK = "A", NAK="N", BAD="B", ASYNC = "X",}
+    OPCODES = {INCOMING = {ADD = "A", REMOVE = "R", EVAL = "E", HEARTBEAT='H'},
+               OUTGOING = {ACK = "A", NAK="N", BAD="B", ASYNC = "X", INITIALIZE='I'}
     },
 }
 
@@ -19,6 +19,10 @@ function Protocol:StringReceived(data)
     end
 end
 
+function Protocol:ConnectionMade()
+    self.reactor.framing:SendString(self.OPCODES.OUTGOING.INITIALIZE..'pybLua-1')
+end
+
 function Protocol:ResolveOpcode(opcode)
     if opcode == self.OPCODES.INCOMING.ADD then
         return self.Add
@@ -26,6 +30,8 @@ function Protocol:ResolveOpcode(opcode)
         return self.Remove
     elseif opcode == self.OPCODES.INCOMING.EVAL then
         return self.Evaluate
+    elseif opcode == self.OPCODES.INCOMING.HEARTBEAT then
+        return self.Heartbeat
     else
         return self.UnknownOpcode
     end
@@ -39,6 +45,11 @@ end
 function Protocol:Remove(string)
     -- TODO: implementation
     self:ACK()
+end
+
+function Protocol:Heartbeat(string)
+    local kilobytes, bytes = collectgarbage("count")
+    self:ACK(string.format("%s", (kilobytes*1024)+bytes))
 end
 
 function Protocol:Evaluate(string)

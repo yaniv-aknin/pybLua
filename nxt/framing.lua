@@ -14,7 +14,7 @@ function Framer:New(protocol)
 end
 
 function Framer:ConnectionMade()
-    self:SendString('pyblua-1')
+    self.protocol:ConnectionMade()
 end
 
 function Framer:ConnectionLost()
@@ -24,7 +24,6 @@ function Framer:ConnectionLost()
 end
 
 function Framer:DataReceived(data)
-    print(string.format('received %q', data))
     self.unprocessed = data
     while (self.unprocessed ~= "") do
         self.buffer = self.buffer .. self.unprocessed
