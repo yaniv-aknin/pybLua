@@ -11,7 +11,12 @@ PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from pc.robot import main
 
 if __name__ == '__main__':
-    main(sys.argv)
+    if len(sys.argv) == 1 or sys.argv[1] == 'robot':
+        from pc.robot import main
+    elif sys.argv[1] == 'logserver':
+        from yalib.logutils.server import main
+    else:
+        print('unknown subcommand %s' % (sys.argv[1],))
+    main([sys.argv[0]] + sys.argv[2:])
