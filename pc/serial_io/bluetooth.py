@@ -44,6 +44,7 @@ def OPCODE(opcode, expectedState=None):
 class BluetoothProtocol:
     opcodes = {}
     magic = 'pybLua-1'
+    heartbeatIntervalSeconds = 0.5
     class __metaclass__(type):
         def __init__(cls, name, bases, env):
             for key, value in env.items():
@@ -118,12 +119,12 @@ class BluetoothProtocol:
         log.msg('initialized by %s' % (payload,))
         self.state = 'idle'
         self.heartbeatTimer = LoopingCall(self.sendHeartbeat)
-        self.heartbeatTimer.start(0.1)
+        self.heartbeatTimer.start(self.heartbeatIntervalSeconds)
     def sendHeartbeat(self):
         self.doCommand('H', defer.Deferred().addCallback(self.heatbeatReceived))
     def heatbeatReceived(self, payload):
         self.heartbeats += 1
-        self.freeRAM = int(payload)
+        self.usedBytes = int(payload)
 
 class BluetoothController(SerialController):
     baudrate = 115200
