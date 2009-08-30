@@ -1,0 +1,3 @@
+[submodule "yalib"]
+	path = yalib
+	url = git@github.com:yaniv-aknin/yalib.git
