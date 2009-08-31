@@ -26,7 +26,7 @@ class Controller(MultiService):
         MultiService.startService(self)
         if self.options.opts['terminal']:
             self.terminal()
-    def load(self, path):
+    def load(self, path='master.recipe'):
         from lego import PROJECT_ROOT
         if os.path.isfile(os.path.join(PROJECT_ROOT, 'nxt', path)):
             path = (os.path.join(PROJECT_ROOT, 'nxt', path))
