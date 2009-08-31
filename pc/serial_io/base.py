@@ -46,3 +46,22 @@ class SerialController(Service):
         Service.stopService(self)
         if self.port is not None:
             self.tearConnection()
+
+class State(object):
+    enterFrom = tuple()
+    def __init__(self, parent):
+        self.parent = parent
+        self.transport = parent.transport
+    def __str__(self):
+        return self.__class__.__name__
+    def enter(self, previousState):
+        pass
+    def exit(self, nextState):
+        pass
+    def connectionMade(self):
+        pass
+    def lineReceived(self, line):
+        log.msg('%s received: %s' % (self, line))
+    def connectionLost(self, reason):
+        log.msg('%s lost connection: %s' % (self, reason))
+        log.err(reason)

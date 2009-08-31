@@ -1,6 +1,7 @@
 from twisted.python import log
 
 from pblua_protocol import pbLuaConsoleProtocol
+from base import State
 
 class UnexpectedOutput(Exception):
     pass
@@ -14,29 +15,12 @@ def isPromptPrefixed(line):
 def isPrompt(line):
     return line.strip() in PROMPTS
 
-class pbLuaState:
-    enterFrom = tuple()
+class pbLuaState(State):
     class __metaclass__(type):
         def __init__(cls, name, bases, env):
             pbLuaConsoleProtocol.knownStates.append(cls)
         def __str__(cls):
             return cls.__name__
-    def __init__(self, parent):
-        self.parent = parent
-        self.transport = parent.transport
-    def __str__(self):
-        return self.__class__.__name__
-    def enter(self, previousState):
-        pass
-    def exit(self, nextState):
-        pass
-    def connectionMade(self):
-        pass
-    def lineReceived(self, line):
-        log.msg('%s received: %s' % (self, line))
-    def connectionLost(self, reason):
-        log.msg('%s lost connection: %s' % (self, reason))
-        log.err(reason)
 
 class pbLuaInitializing(pbLuaState):
     def enter(self, previousState):
