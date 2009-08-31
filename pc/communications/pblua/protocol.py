@@ -1,8 +1,7 @@
 from twisted.protocols.basic import LineReceiver
 from twisted.python import log
 
-from errors import InvalidTransition
-from base import StateMachineMixin
+from ..base import StateMachineMixin
 
 class pbLuaConsoleProtocol(LineReceiver, StateMachineMixin):
     knownStates = []
@@ -10,7 +9,7 @@ class pbLuaConsoleProtocol(LineReceiver, StateMachineMixin):
         self.parent = parent
         StateMachineMixin.__init__(self)
     def connectionMade(self):
-        from pblua_states import pbLuaInitializing
+        from states import pbLuaInitializing
         self.setState(pbLuaInitializing)
     def rawDataReceived(self, data):
         return self.state.dataReceived(data)

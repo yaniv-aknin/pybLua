@@ -1,5 +1,5 @@
 from base import SerialController
-from pyblua_protocol import pybLuaProtocol
+from pyblua.protocol import pybLuaProtocol
 
 class BluetoothController(SerialController):
     baudrate = 115200

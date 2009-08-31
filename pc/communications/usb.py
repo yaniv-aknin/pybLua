@@ -1,6 +1,6 @@
 from base import SerialController
 
-from pblua_protocol import pbLuaConsoleProtocol
+from pblua.protocol import pbLuaConsoleProtocol
 
 class USBController(SerialController):
     baudrate = 19200

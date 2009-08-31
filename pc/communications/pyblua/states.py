@@ -1,9 +1,9 @@
 from twisted.python import log
 from twisted.internet.defer import Deferred
 
-from base import State
-from pyblua_commands import Heartbeat
-from pyblua_errors import NAKReceived, InternalError
+from ..base import State
+from commands import Heartbeat
+from errors import NAKReceived, InternalError
 
 def OPCODE(opcode):
     def decor(func):
@@ -15,7 +15,7 @@ class pybLuaState(State):
     opcodes = {}
     class __metaclass__(type):
         def __init__(cls, name, bases, env):
-            from pyblua_protocol import pybLuaProtocol
+            from protocol import pybLuaProtocol
             pybLuaProtocol.knownStates.append(cls)
             for key, value in env.items():
                 if hasattr(value, 'opcode'):

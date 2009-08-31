@@ -3,9 +3,9 @@ from twisted.internet import reactor
 from twisted.python import log
 from twisted.internet.error import AlreadyCalled, AlreadyCancelled
 
-from base import StateMachineMixin
+from ..base import StateMachineMixin
 
-from pyblua_errors import BadOpcode
+from errors import BadOpcode
 
 # HACK: also inherit object to allow the metaclass to exist; maybe its a bad idea
 class pybLuaProtocol(Int16StringReceiver, StateMachineMixin):
@@ -23,7 +23,7 @@ class pybLuaProtocol(Int16StringReceiver, StateMachineMixin):
         self.usedBytes = None
         self.outgoingQueue = []
     def connectionMade(self):
-        from pyblua_states import pybLuaInitializing
+        from states import pybLuaInitializing
         self.consecutiveHeartbeatsMissed = 0
         self.setState(pybLuaInitializing)
     def connectionLost(self, reason):
@@ -47,7 +47,7 @@ class pybLuaProtocol(Int16StringReceiver, StateMachineMixin):
         assert self.alarm is None or self.alarm.called, 'trying to set an alarm on an already set alarm'
         self.alarm = self.IReactorTimeProvider.callLater(timeout, callable, *args, **kwargs)
     def doCommand(self, command):
-        from pyblua_states import pybLuaIdle, pybLuaBusy
+        from states import pybLuaIdle, pybLuaBusy
         if self.state is pybLuaIdle:
             self.setState(pybLuaBusy, command)
         else:

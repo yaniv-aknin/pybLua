@@ -7,6 +7,8 @@ from twisted.python import log
 
 from serial.serialutil import SerialException
 
+from errors import InvalidTransition
+
 class SerialController(Service):
     retries = 6
     interval = 3

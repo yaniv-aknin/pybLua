@@ -5,10 +5,10 @@ from twisted.conch.stdio import ConsoleManhole
 from twisted.conch.manhole import CTRL_D
 from twisted.conch.insults.insults import ServerProtocol
 
-from serial_io.usb import USBController
-from serial_io.bluetooth import BluetoothController
-from serial_io.pblua_states import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
-from serial_io.pyblua_states import pybLuaInitializing
+from communications.usb import USBController
+from communications.bluetooth import BluetoothController
+from communications.pblua.states import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
+from communications.pyblua.states import pybLuaInitializing
 from stdio import StdIOController
 from protocol_utils import TerminalBridgeProtocol
 from recipe import loadRecipeLines

@@ -1,7 +1,8 @@
 from twisted.python import log
 
-from pblua_protocol import pbLuaConsoleProtocol
-from base import State
+from ..base import State
+
+from protocol import pbLuaConsoleProtocol
 from errors import UnexpectedOutput
 
 
