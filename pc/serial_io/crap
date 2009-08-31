@@ -1,0 +1,21 @@
+i = """
+    @OPCODE(None)
+    def invalidState(self, opcode, payload, expectedState):
+        log.msg('ignoring opcode %s with payload %s; state is %s and expected %s' %
+                (opcode, payload, self.state, expectedState))
+    @OPCODE('X')
+    def asyncResponse(self, payload):
+        log.msg('received async response: %s' % (payload,))
+class OPCODES:
+    class INCOMING:
+        ADD = "A"
+        REMOVE = "R"
+        EVAL = "E"
+    class OUTGOING:
+        ACK = "A"
+        NAK = "N"
+        BAD = "B"
+        ASYNC = "X"
+        INITIALIZE = "I"
+
+"""

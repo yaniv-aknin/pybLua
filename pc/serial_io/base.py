@@ -48,6 +48,7 @@ class SerialController(Service):
             self.tearConnection()
 
 class State(object):
+    noisy = True
     enterFrom = tuple()
     def __init__(self, parent):
         self.parent = parent
@@ -65,3 +66,18 @@ class State(object):
     def connectionLost(self, reason):
         log.msg('%s lost connection: %s' % (self, reason))
         log.err(reason)
+
+class StateMachineMixin:
+    def __init__(self):
+        self.states = dict((cls, cls(self)) for cls in self.knownStates)
+        self.state = None
+    def setState(self, state, *args, **kwargs):
+        if state.enterFrom and self.state.__class__ not in state.enterFrom:
+            raise InvalidTransition('invalid state change: %s -> %s' % (self.state, state))
+        if state.noisy:
+            log.msg('%s -> %s' % (self.state, state))
+        if self.state is not None:
+            self.state.exit(state)
+        previousState = self.state
+        self.state = self.states[state]
+        self.state.enter(previousState, *args, **kwargs)

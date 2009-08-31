@@ -2,11 +2,8 @@ from twisted.python import log
 
 from pblua_protocol import pbLuaConsoleProtocol
 from base import State
+from errors import UnexpectedOutput
 
-class UnexpectedOutput(Exception):
-    pass
-class InvalidTransition(Exception):
-    pass
 
 PROMPTS = ('>', '>>')
 

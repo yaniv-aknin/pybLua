@@ -1,114 +1,72 @@
 from twisted.protocols.basic import Int16StringReceiver
-from twisted.internet import defer
-from twisted.internet.task import LoopingCall
+from twisted.internet import reactor
 from twisted.python import log
+from twisted.internet.error import AlreadyCalled, AlreadyCancelled
 
-class NAKReceived(Exception):
-    pass
-class BadCommand(Exception):
-    pass
+from base import StateMachineMixin
 
-class OPCODES:
-    class INCOMING:
-        ADD = "A"
-        REMOVE = "R"
-        EVAL = "E"
-    class OUTGOING:
-        ACK = "A"
-        NAK = "N"
-        BAD = "B"
-        ASYNC = "X"
-        INITIALIZE = "I"
-
-def OPCODE(opcode, expectedState=None):
-    def decor(func):
-        func.opcode = opcode
-        func.expectedState = expectedState
-        return func
-    return decor
+from pyblua_errors import BadOpcode
 
 # HACK: also inherit object to allow the metaclass to exist; maybe its a bad idea
-class pybLuaProtocol(Int16StringReceiver, object):
-    opcodes = {}
+class pybLuaProtocol(Int16StringReceiver, StateMachineMixin):
+    IReactorTimeProvider = reactor
     magic = 'pybLua-1'
     heartbeatIntervalSeconds = 0.5
-    class __metaclass__(type):
-        def __init__(cls, name, bases, env):
-            for key, value in env.items():
-                if hasattr(value, 'opcode'):
-                    cls.opcodes[value.opcode] = value
-        def __str__(cls):
-            return cls.__name__
+    maximumMissedHeartbeats = 3
+    knownStates = []
     def __init__(self, parent):
+        StateMachineMixin.__init__(self)
         self.parent = parent
-        self.state = None
-        self.outgoingQueue = []
-        self.commandReceivedDeferred = None
-        self.heartbeatTimer = None
+        self.alarm = None
         self.heartbeats = None
+        self.consecutiveHeartbeatsMissed = None
+        self.usedBytes = None
+        self.outgoingQueue = []
     def connectionMade(self):
-        self.state = 'initializing'
-        self.heartbeats = 0
-    def connectionLost(self):
-        if self.heartbeatTimer:
-            self.heartbeatTimer.stop()
+        from pyblua_states import pybLuaInitializing
+        self.consecutiveHeartbeatsMissed = 0
+        self.setState(pybLuaInitializing)
+    def connectionLost(self, reason):
+        self.state.connectionLost(reason)
+        self.heartbeats = None
+        self.usedBytes = None
+        self.cancelAlarm(swallowErrors=True)
+        self.outgoingQueue = []
     def stringReceived(self, data):
+        log.msg('rcvd: %s' % (data))
         opcode, payload = data[0], data[1:]
-        func = self.opcodes.get(opcode, self.invalidOpcode)
-        if func.expectedState and self.state != func.expectedState:
-            self.invalidState(opcode, payload, func.expectedState)
-            return
-        func(self, payload)
-    @OPCODE(None)
-    def invalidOpcode(self, opcode, payload):
-        log.msg('received unknown opcode %s with payload %s' % (opcode, payload))
-    def invalidState(self, opcode, payload, expectedState):
-        log.msg('ignoring opcode %s with payload %s; state is %s and expected %s' %
-                (opcode, payload, self.state, expectedState))
-    def sendCommand(self, command, deferred):
-        self.state = 'command-sent'
-        self.commandReceivedDeferred = deferred
-        self.sendString(command)
-    def doCommand(self, command, deferred=None):
-        if self.state == 'idle':
-            self.sendCommand(command, deferred)
+        func = self.state.opcodes.get(opcode)
+        if func is None:
+            log.err(BadOpcode(self.state, data))
         else:
-            self.outgoingQueue.append((command, deferred))
-    @OPCODE('A', 'command-sent')
-    def acknowledgment(self, payload):
-        self.state = 'idle'
-        if self.commandReceivedDeferred:
-            self.commandReceivedDeferred.callback(payload)
-        if self.outgoingQueue:
-            self.sendCommand(*self.outgoingQueue.pop(-1))
-    @OPCODE('N', 'command-sent')
-    def nonAcknowledgment(self, payload):
-        self.state = 'idle'
-        if self.commandReceivedDeferred:
-            self.commandReceivedDeferred.errback(NAKReceived(payload))
-        if self.outgoingQueue:
-            self.sendCommand(*self.outgoingQueue.pop(-1))
-    @OPCODE('B', 'command-sent')
-    def badCommand(self, payload):
-        self.state = 'idle'
-        log.msg('BAD: %s' % (payload,))
-        if self.commandReceivedDeferred:
-            self.commandReceivedDeferred.errback(BadCommand(payload))
-        if self.outgoingQueue:
-            self.sendCommand(*self.outgoingQueue.pop(-1))
-    @OPCODE('X')
-    def asyncResponse(self, payload):
-        log.msg('received async response: %s' % (payload,))
-    @OPCODE('I', 'initializing')
-    def initialize(self, payload):
-        if not payload.startswith(self.magic):
-            log.msg('warning: initialized with wrong protocol magic: %r (expected %r)' % (payload, self.magic))
-        log.msg('initialized by %s' % (payload,))
-        self.state = 'idle'
-        self.heartbeatTimer = LoopingCall(self.sendHeartbeat)
-        self.heartbeatTimer.start(self.heartbeatIntervalSeconds)
-    def sendHeartbeat(self):
-        self.doCommand('H', defer.Deferred().addCallback(self.heatbeatReceived))
-    def heatbeatReceived(self, payload):
+            func(self.state, payload)
+    def sendCommand(self, command):
+        log.msg(str(command))
+        self.sendString(str(command))
+    def setAlarm(self, timeout, callable, *args, **kwargs):
+        assert self.alarm is None or self.alarm.called, 'trying to set an alarm on an already set alarm'
+        self.alarm = self.IReactorTimeProvider.callLater(timeout, callable, *args, **kwargs)
+    def doCommand(self, command):
+        from pyblua_states import pybLuaIdle, pybLuaBusy
+        if self.state is pybLuaIdle:
+            self.setState(pybLuaBusy, command)
+        else:
+            self.outgoingQueue.append(command)
+    def cancelAlarm(self, swallowErrors=False):
+        try:
+            self.alarm.cancel()
+        except (AlreadyCalled, AlreadyCancelled):
+            if not swallowErrors:
+                raise
+        except AttributeError:
+            if not swallowErrors:
+                raise AlreadyCancelled('trying to cancel a non-existent alarm')
+    def heartbeatReceived(self, payload):
+        self.consecutiveHeartbeatsMissed = 0
         self.heartbeats += 1
         self.usedBytes = int(payload)
+    def heatbeatMissed(self, failure):
+        log.err(failure)
+        self.consecutiveHeartbeatsMissed += 1
+        if self.consecutiveHeartbeatsMissed > self.maximumMissedHeartbeats:
+            self.transport.loseConnection()

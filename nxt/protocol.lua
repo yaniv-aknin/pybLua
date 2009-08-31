@@ -1,6 +1,6 @@
 Protocol = {
     OPCODES = {INCOMING = {ADD = "A", REMOVE = "R", EVAL = "E", HEARTBEAT='H'},
-               OUTGOING = {ACK = "A", NAK="N", BAD="B", ASYNC = "X", INITIALIZE='I'}
+               OUTGOING = {ACK = "A", NAK="N", ERROR="E", ASYNC = "X", INITIALIZE='I'}
     },
 }
 
@@ -69,7 +69,7 @@ end
 
 function Protocol:BadOperation(data, err)
     print("pyblua-bad", data, err)
-    self:BAD()
+    self:ERROR()
 end
 
 function Protocol:Reply(code, message)
@@ -86,8 +86,8 @@ end
 function Protocol:NAK(message)
     self:Reply(self.OPCODES.OUTGOING.NAK, message)
 end
-function Protocol:BAD(message)
-    self:Reply(self.OPCODES.OUTGOING.BAD, message)
+function Protocol:ERROR(message)
+    self:Reply(self.OPCODES.OUTGOING.ERROR, message)
 end
 function Protocol:ASYNC(message)
     self:Reply(self.OPCODES.OUTGOING.ASYNC, message)
