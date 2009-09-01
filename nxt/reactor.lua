@@ -60,7 +60,7 @@ function Reactor:AddEvent(interval, data_source, predicate, callback)
                    data_source=data_source,
                    predicate=predicate,
                    callback=callback,
-                   id=nxt.random() + nxt.random()}
+                   id=nxt.random()}
     self:InsertEventAndResortEvents(event)
     return event.id
 end
