@@ -52,7 +52,7 @@ class pbLuaLoading(pbLuaState):
     def sendLine(self):
         line = self.lines.pop(0)
         log.msg('sent: ' + line)
-        self.parent.transport.write(line + '\n')
+        self.parent.transport.write(line.strip() + '\n')
     def lineReceived(self, line):
         if not isPromptPrefixed(line):
             log.err(UnexpectedOutput('unexpected: %s' % (line,)))
