@@ -6,10 +6,12 @@ import os
 
 from twisted.internet import reactor
 from twisted.python import log, usage
+from twisted.conch.stdio import ConsoleManhole
 
 from log import setupLogging
 
 from controller import Controller
+from stdio import StdIOController
 
 class RobotOptions(usage.Options):
     optFlags = [
@@ -55,6 +57,9 @@ def main(argv):
     setupLogging(options.opts['log'], options.opts['logLevel'])
 
     with RawTTYContext():
-        controller = Controller(options)
+        stdio = StdIOController()
+        controller = Controller(options, stdio)
+        stdio.protocolStack.push(ConsoleManhole(dict(C=controller, UC=controller.usb, BC=controller.bluetooth)))
+        stdio.startService()
         controller.startService()
         reactor.run()

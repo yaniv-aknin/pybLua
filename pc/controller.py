@@ -1,7 +1,7 @@
+from __future__ import print_function
 import os
 
 from twisted.application.service import MultiService
-from twisted.conch.stdio import ConsoleManhole
 from twisted.conch.manhole import CTRL_D
 from twisted.conch.insults.insults import ServerProtocol
 
@@ -9,19 +9,17 @@ from communications.usb import USBController
 from communications.bluetooth import BluetoothController
 from communications.pblua.states import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
 from communications.pyblua.states import pybLuaInitializing
-from stdio import StdIOController, TerminalBridgeProtocol
+from stdio import TerminalBridgeProtocol
 from recipe import loadRecipeLines
 
 class Controller(MultiService):
-    def __init__(self, options):
+    def __init__(self, options, stdio):
         MultiService.__init__(self)
         self.options = options
         self.usb = USBController(options.opts['usb'])
         self.usb.setServiceParent(self)
         self.bluetooth = BluetoothController(options.opts['bluetooth'])
-        self.stdio = StdIOController()
-        self.stdio.protocolStack.push(ConsoleManhole(dict(C=self, SC=self.stdio, UC=self.usb, BC=self.bluetooth)))
-        self.stdio.setServiceParent(self)
+        self.stdio = stdio
     def startService(self):
         MultiService.startService(self)
         if self.options.opts['terminal']:
