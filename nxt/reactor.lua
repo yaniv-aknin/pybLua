@@ -11,8 +11,42 @@ function Reactor:New()
     nxt.BtStreamMode(1)
     instance.protocol = Protocol:New(instance)
     instance.framing = Framer:New(instance.protocol)
-    self:AddEvent(2500, nil, nil, function() nxt.SoundTone() end)
+    instance:AddEvent(2500, nil, nil, function() nxt.SoundTone() end)
+    instance:SetupBluetoothHandler(500)
+    instance:SetupAbortButton(100)
     return instance
+end
+
+function Reactor:SetupAbortButton(interval)
+    function AbortButton(reactor, event_id, datum)
+            nxt.SoundTone(1500)
+            repeat
+                --
+            until nxt.ButtonRead() == 0x0
+            nxt.SoundTone(500)
+            reactor.running = false
+    end
+    self:AddEvent(interval, nxt.ButtonRead, function(reactor, datum) return datum == 0x8 end, AbortButton)
+end
+
+function Reactor:SetupBluetoothHandler(interval)
+    function GetBluetoothConnectionState()
+        return (nxt.band(nxt.BtGetStatus(), 2) ~= 0)
+    end
+    function DidConnectionStateChange(reactor, currentState)
+        return (reactor.connected ~= currentState)
+    end
+    function HandleStateChange(reactor, event_id)
+        reactor.connected = not reactor.connected
+        if reactor.connected then
+            nxt.SoundTone(2000)
+            reactor.framing:ConnectionMade()
+        else
+            nxt.SoundTone(500)
+            reactor.framing:ConnectionLost()
+        end
+    end
+    self:AddEvent(interval, GetBluetoothConnectionState, DidConnectionStateChange, HandleStateChange)
 end
 
 function Reactor:AddEvent(interval, data_source, predicate, callback)
@@ -45,39 +79,11 @@ function Reactor:ResumeEvent(event)
     self:InsertEventAndResortEvents(event)
 end
 
-function Reactor:TestAbortButton()
-    if nxt.ButtonRead() == 0x1 then -- 0x1: rectangular grey button
-        nxt.SoundTone()
-        repeat
-            --
-        until nxt.ButtonRead() == 0x0
-        nxt.SoundTone(500)
-        error('abort button pressed')
-    end
-end
-
-
-function Reactor:TestBTConnection()
-    local current = (nxt.band(nxt.BtGetStatus(), 2) ~= 0) -- 0x02: BT_STATE_CONNECTED
-    if current ~= self.connected then
-        self.connected = current
-        if current then
-            nxt.SoundTone(2000)
-            self.framing:ConnectionMade()
-        else
-            nxt.SoundTone(500)
-            self.framing:ConnectionLost()
-        end
-    end
-end
-
 function Reactor:Run()
     local data
     local current_event
     self.running = true
     while (self.running) do
-        self:TestAbortButton()
-        self:TestBTConnection()
         local data = nxt.BtStreamRecv()
         if ((data ~= nil) and (#data > 0)) then
             self.framing:DataReceived(data)
@@ -102,9 +108,11 @@ end
 
 function Reactor:HandleEvent(event)
     local datum = event.data_source()
-    if (event.predicate(datum)) then
-        if (event.callback(event.id, datum) ~= false) then
+    if (event.predicate(self, datum)) then
+        if (event.callback(self, event.id, datum) ~= false) then
             self:ResumeEvent(event)
         end
+    else
+        self:ResumeEvent(event)
     end
 end
