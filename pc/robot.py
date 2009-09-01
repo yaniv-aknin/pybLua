@@ -1,4 +1,5 @@
 import sys
+import logging
 import tty
 import termios
 import os
@@ -18,6 +19,7 @@ class RobotOptions(usage.Options):
         ['usb', 'u', None, 'USB Serial device'],
         ['bluetooth', 'b', None, 'Bluetooth Serial device'],
         ['log', 'l', None, 'Path for logfile'],
+        ['logLevel', 'L', logging.DEBUG, 'Default loglevel (0-50)'],
     ]
     def postOptions(self):
         for device in ('usb', 'bluetooth'):
@@ -27,6 +29,10 @@ class RobotOptions(usage.Options):
             if not os.path.islink(default_device_path):
                 raise usage.UsageError('no %s device specified and .default_%s symlink missing' % (device, device))
             self[device] = default_device_path
+        try:
+            self['logLevel'] = int(self['logLevel'])
+        except ValueError, error:
+            raise usage.UsageError('invalid logLevel %r: %s' % (self['logLevel'], error))
 
 class RawTTYContext:
     def __enter__(self):
@@ -46,7 +52,7 @@ def main(argv):
         print '%s: Try --help for usage details.' % (argv[0])
         raise SystemExit(1)
 
-    setupLogging(options.opts['log'])
+    setupLogging(options.opts['log'], options.opts['logLevel'])
 
     with RawTTYContext():
         controller = Controller(options)

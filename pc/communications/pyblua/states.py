@@ -44,7 +44,7 @@ class pybLuaAsyncState(pybLuaState):
         log.err(InternalError(self, payload))
 
 class pybLuaIdle(pybLuaState):
-    noisy = False
+    logLevel = 5
     def enter(self, previousState):
         pybLuaState.enter(self, previousState)
         self.attempts = 0
@@ -56,7 +56,7 @@ class pybLuaIdle(pybLuaState):
         self.parent.cancelAlarm(swallowErrors=True)
 
 class pybLuaBusy(pybLuaState):
-    noisy = False
+    logLevel = 5
     def enter(self, previousState, command):
         pybLuaState.enter(self, previousState)
         self.sendCommand(command)

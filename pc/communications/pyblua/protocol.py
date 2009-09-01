@@ -22,6 +22,8 @@ class pybLuaProtocol(Int16StringReceiver, StateMachineMixin):
         self.consecutiveHeartbeatsMissed = None
         self.usedBytes = None
         self.outgoingQueue = []
+    def __str__(self):
+        return self.__class__.__name__
     def connectionMade(self):
         from states import pybLuaInitializing
         self.consecutiveHeartbeatsMissed = 0
@@ -33,7 +35,7 @@ class pybLuaProtocol(Int16StringReceiver, StateMachineMixin):
         self.cancelAlarm(swallowErrors=True)
         self.outgoingQueue = []
     def stringReceived(self, data):
-        log.msg('rcvd: %s' % (data))
+        log.msg('%s rcvd: %s' % (self, data), logLevel=5)
         opcode, payload = data[0], data[1:]
         func = self.state.opcodes.get(opcode)
         if func is None:
@@ -41,7 +43,7 @@ class pybLuaProtocol(Int16StringReceiver, StateMachineMixin):
         else:
             func(self.state, payload)
     def sendCommand(self, command):
-        log.msg(str(command))
+        log.msg('%s send: %s' % (self, command), logLevel=5)
         self.sendString(str(command))
     def setAlarm(self, timeout, callable, *args, **kwargs):
         assert self.alarm is None or self.alarm.called, 'trying to set an alarm on an already set alarm'

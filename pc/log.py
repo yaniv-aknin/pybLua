@@ -4,11 +4,11 @@ from twisted.python import log
 
 from yalib.logutils import NonBlockingDatagramHandler
 
-def setupLogging(logFile=None):
+def setupLogging(logFile, logLevel):
     if logFile is None:
         handler = NonBlockingDatagramHandler()
-        handler.setLevel(10)
-        logging.getLogger().setLevel(10)
+        handler.setLevel(logLevel)
+        logging.getLogger().setLevel(logLevel)
         logging.getLogger().addHandler(handler)
         # HACK: something is rotten here, and either I don't get it or Twisted is broken; log.PythonLoggingObserver
         #        is an observer, and should have __call__(). Instead it has emit(), which does exactly what we'd

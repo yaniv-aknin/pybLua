@@ -1,3 +1,5 @@
+import logging
+
 from twisted.python import log
 
 from ..base import State
@@ -33,7 +35,7 @@ class pbLuaInitializing(pbLuaState):
             self.parent.setState(pbLuaConnected)
         else:
             if self.attempts > 1:
-                log.msg('desired prompt, received %r instead' % (line,))
+                log.msg('desired prompt, received %r instead' % (line,), logLevel=logging.WARNING)
             if self.attempts < 2:
                 self.sendNewLineToGetPrompt()
             else:
@@ -47,11 +49,12 @@ class pbLuaLoading(pbLuaState):
     def enter(self, previousState, lines, autoExecute=True):
         pbLuaState.enter(self, previousState)
         self.lines = lines
+        log.msg('loading %s lines (%s bytes)' % (len(lines), len("\n".join(lines))))
         self.nextState = pbLuaRunning if autoExecute else pbLuaConnected
         self.sendLine()
     def sendLine(self):
         line = self.lines.pop(0)
-        log.msg('sent: ' + line)
+        log.msg('%s sent: %s' % (self, line), logLevel=5)
         self.parent.transport.write(line.strip() + '\n')
     def lineReceived(self, line):
         if not isPromptPrefixed(line):
@@ -62,6 +65,9 @@ class pbLuaLoading(pbLuaState):
                 self.sendLine()
             else:
                 self.parent.setState(self.nextState)
+    def exit(self, nextState):
+        pbLuaState.exit(self, nextState)
+        log.msg('finished loading')
 
 class pbLuaTerminal(pbLuaState):
     enterFrom=(pbLuaConnected, pbLuaInitializing)
@@ -72,6 +78,7 @@ class pbLuaTerminal(pbLuaState):
     def dataReceived(self, data):
         self.stdio.write(data)
     def exit(self, nextState):
+        pbLuaState.exit(self, nextState)
         self.parent.setLineMode()
 
 class pbLuaRunning(pbLuaState):

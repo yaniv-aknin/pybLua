@@ -1,4 +1,5 @@
 import os
+import logging
 
 from twisted.internet import reactor, protocol
 from twisted.application.service import Service
@@ -28,14 +29,15 @@ class SerialController(Service):
     def _startConnection(self):
         self.attempt += 1
         if self.attempt > self.retries:
-            log.msg('giving up; %s remains stopped' % (self.__class__.__name__,))
+            log.msg('giving up; %s remains stopped' % (self.__class__.__name__,), logLevel=logging.WARNING)
             self.stopService()
             return
         try:
             self.port = SerialPort(self.protocolFactory(self), self.device, reactor, baudrate=self.baudrate)
             log.msg('opened %s' % (self.device,))
         except SerialException, error:
-            log.msg('unable to open %s (%d/%d retries)' % (os.path.basename(self.device), self.attempt, self.retries))
+            log.msg('unable to open %s (%d/%d retries)' % (os.path.basename(self.device), self.attempt, self.retries),
+                    logLevel=logging.WARNING)
             reactor.callLater(self.interval, self._startConnection)
     def tearConnection(self):
         log.msg('closing %s' % (self.device))
@@ -50,7 +52,7 @@ class SerialController(Service):
             self.tearConnection()
 
 class State(object):
-    noisy = True
+    logLevel = 10
     enterFrom = tuple()
     def __init__(self, parent):
         self.parent = parent
@@ -76,8 +78,7 @@ class StateMachineMixin:
     def setState(self, state, *args, **kwargs):
         if state.enterFrom and self.state.__class__ not in state.enterFrom:
             raise InvalidTransition('invalid state change: %s -> %s' % (self.state, state))
-        if state.noisy:
-            log.msg('%s -> %s' % (self.state, state))
+        log.msg('%s -> %s' % (self.state, state), logLevel = state.logLevel)
         if self.state is not None:
             self.state.exit(state)
         previousState = self.state
