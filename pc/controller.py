@@ -9,8 +9,7 @@ from communications.usb import USBController
 from communications.bluetooth import BluetoothController
 from communications.pblua.states import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
 from communications.pyblua.states import pybLuaInitializing
-from stdio import StdIOController
-from protocol_utils import TerminalBridgeProtocol
+from stdio import StdIOController, TerminalBridgeProtocol
 from recipe import loadRecipeLines
 
 class Controller(MultiService):
