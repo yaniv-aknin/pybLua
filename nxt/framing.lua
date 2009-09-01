@@ -63,6 +63,6 @@ function Framer:SendString(payload)
     if (#payload >= (2^16)) then
         error(string.format('bad msg len: %d >= 2^16', #payload))
     end
-    high_length, low_length = nxt.brshift(#payload, 8), nxt.band(#payload, 255)
+    local high_length, low_length = nxt.brshift(#payload, 8), nxt.band(#payload, 255)
     return nxt.BtStreamSend(0, string.char(high_length)..string.char(low_length)..payload)
 end

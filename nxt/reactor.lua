@@ -78,12 +78,12 @@ function Reactor:Run()
     while (self.running) do
         self:TestAbortButton()
         self:TestBTConnection()
-        data = nxt.BtStreamRecv()
+        local data = nxt.BtStreamRecv()
         if ((data ~= nil) and (#data > 0)) then
             self.framing:DataReceived(data)
         end
         repeat
-            current_event = self:ConditionalPopEvent()
+            local current_event = self:ConditionalPopEvent()
             if (current_event ~= nil) then
                 self:HandleEvent(current_event)
             end

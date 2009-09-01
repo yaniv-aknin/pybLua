@@ -13,9 +13,9 @@ end
 
 function Protocol:StringReceived(data)
     local opcode, payload = string.sub(data, 1, 1), string.sub(data, 2)
-    status, err = pcall(self:ResolveOpcode(opcode), self, payload)
+    local status, err = pcall(self:ResolveOpcode(opcode), self, payload)
     if not status then
-        self:BadOperation(data, err)
+        self:ERROR(data, err)
     end
 end
 
@@ -37,23 +37,13 @@ function Protocol:ResolveOpcode(opcode)
     end
 end
 
-function Protocol:Add(string)
-    -- TODO: implementation
-    self:ACK()
-end
-
-function Protocol:Remove(string)
-    -- TODO: implementation
-    self:ACK()
-end
-
 function Protocol:Heartbeat(string)
     local kilobytes, bytes = collectgarbage("count")
     self:ACK(string.format("%s", (kilobytes*1024)+bytes))
 end
 
 function Protocol:Evaluate(string)
-    func, err = loadstring(string)
+    local func, err = loadstring(string)
     if func == nil then
         print('pyblua-load-failure', err)
         self:NAK('load-failure')
@@ -67,8 +57,8 @@ function Protocol:UnknownOpcode(string)
     self:NAK('unknown-opcode:'..string)
 end
 
-function Protocol:BadOperation(data, err)
-    print("pyblua-bad", data, err)
+function Protocol:ERROR(data, err)
+    print("pyblua-error", data, err)
     self:ERROR()
 end
 
