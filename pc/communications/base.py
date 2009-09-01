@@ -72,13 +72,14 @@ class State(object):
         log.err(reason)
 
 class StateMachineMixin:
+    """This class can be mixed with protocols to facilitate the creation of state-machine controlled protocols"""
     def __init__(self):
         self.states = dict((cls, cls(self)) for cls in self.knownStates)
         self.state = None
     def setState(self, state, *args, **kwargs):
         if state.enterFrom and self.state.__class__ not in state.enterFrom:
             raise InvalidTransition('invalid state change: %s -> %s' % (self.state, state))
-        log.msg('%s -> %s' % (self.state, state), logLevel = state.logLevel)
+        log.msg('%s: %s -> %s' % (self.__class__.__name__, self.state, state), logLevel = state.logLevel)
         if self.state is not None:
             self.state.exit(state)
         previousState = self.state
