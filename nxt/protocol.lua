@@ -1,5 +1,5 @@
 Protocol = {
-    OPCODES = {INCOMING = {ADD = "A", REMOVE = "R", EVAL = "E", HEARTBEAT='H'},
+    OPCODES = {INCOMING = {EVAL = "E", HEARTBEAT='H'},
                OUTGOING = {ACK = "A", NAK="N", ERROR="E", ASYNC = "X", INITIALIZE='I'}
     },
 }
@@ -12,11 +12,7 @@ function Protocol:New(reactor)
 end
 
 function Protocol:StringReceived(data)
-    local opcode, payload = string.sub(data, 1, 1), string.sub(data, 2)
-    local status, err = pcall(self:ResolveOpcode(opcode), self, payload)
-    if not status then
-        self:ERROR(data, err)
-    end
+    self:ResolveOpcode(string.sub(data, 1, 1))(self, string.sub(data, 2))
 end
 
 function Protocol:ConnectionMade()
@@ -24,11 +20,7 @@ function Protocol:ConnectionMade()
 end
 
 function Protocol:ResolveOpcode(opcode)
-    if opcode == self.OPCODES.INCOMING.ADD then
-        return self.Add
-    elseif opcode == self.OPCODES.INCOMING.REMOVE then
-        return self.Remove
-    elseif opcode == self.OPCODES.INCOMING.EVAL then
+    if opcode == self.OPCODES.INCOMING.EVAL then
         return self.Evaluate
     elseif opcode == self.OPCODES.INCOMING.HEARTBEAT then
         return self.Heartbeat
@@ -45,11 +37,17 @@ end
 function Protocol:Evaluate(string)
     local func, err = loadstring(string)
     if func == nil then
-        print('pyblua-load-failure', err)
-        self:NAK('load-failure')
-    else
-        self:ACK(func(reactor))
+        return self:ERROR('load: '..err)
     end
+
+    success, result, ack = pcall(func, reactor)
+    if success == false then
+        return self:ERROR('error: '..result)
+    end
+    if ack == false then
+        return self:NAK(result)
+    end
+    self:ACK(result)
 end
 
 function Protocol:UnknownOpcode(string)
