@@ -60,9 +60,20 @@ function Reactor:AddEvent(interval, data_source, predicate, callback)
                    data_source=data_source,
                    predicate=predicate,
                    callback=callback,
-                   id=nxt.random()}
+                   -- NOTE: we keep the id as a string because that is the only thing we can pass over our
+                   --        communication channels and serialization/deserialization code is probably overkill
+                   id=string.format('%d', nxt.random())}
     self:InsertEventAndResortEvents(event)
     return event.id
+end
+
+function Reactor:RemoveEvent(id)
+    local index = primitives.find(self.events, function(event) return event.id == id end)
+    if index == nil then
+        return id, false
+    end
+    table.remove(self.events, index)
+    return id
 end
 
 function Reactor:ComputeNextTime(interval)
