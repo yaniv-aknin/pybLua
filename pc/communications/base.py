@@ -67,6 +67,8 @@ class State(object):
         pass
     def lineReceived(self, line):
         log.msg('%s received: %s' % (self, line))
+    def dataReceived(self, data):
+        log.msg('%s received: %s' % (self, data))
     def connectionLost(self, reason):
         log.msg('%s lost connection: %s' % (self, reason))
         log.err(reason)
