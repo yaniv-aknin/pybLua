@@ -12,31 +12,26 @@ from communications.bluetooth import BluetoothController
 from communications.pblua.states import pbLuaRunning, pbLuaTerminal, pbLuaLoading, pbLuaInitializing
 from communications.pyblua.states import pybLuaInitializing
 from communications.pyblua.commands import Evaluate
-from stdio import TerminalBridgeProtocol
+from interact import TerminalBridgeProtocol
 from recipe import loadRecipeLines
 
 class Controller(MultiService):
-    def __init__(self, options, stdio):
+    def __init__(self, usbDevice, bluetoothDevice, interactionController):
         MultiService.__init__(self)
-        self.options = options
-        self.usb = USBController(options.opts['usb'])
+        self.usb = USBController(usbDevice)
         self.usb.setServiceParent(self)
-        self.bluetooth = BluetoothController(options.opts['bluetooth'])
-        self.stdio = stdio
-    def startService(self):
-        MultiService.startService(self)
-        if self.options.opts['terminal']:
-            self.terminal()
+        self.bluetooth = BluetoothController(bluetoothDevice)
+        self.interactionController = interactionController
     def load(self, path='master.recipe'):
         from lego import PROJECT_ROOT
         if os.path.isfile(os.path.join(PROJECT_ROOT, 'nxt', path)):
             path = (os.path.join(PROJECT_ROOT, 'nxt', path))
         self.usb.setState(pbLuaLoading, loadRecipeLines(path))
     def terminal(self):
-        self.stdio.protocolStack.push(TerminalBridgeProtocol(self.usb.port, {CTRL_D: self.manhole}))
-        self.usb.setState(pbLuaTerminal, self.stdio.stdio)
+        self.interactionController.protocolStack.push(TerminalBridgeProtocol(self.usb.port, {CTRL_D: self.manhole}))
+        self.usb.setState(pbLuaTerminal, self.interactionController.terminal)
     def manhole(self, keyID):
-        self.stdio.protocolStack.pop()
+        self.interactionController.protocolStack.pop()
         self.usb.setState(pbLuaInitializing)
     def execute(self):
         self.usb.protocol.setState(pbLuaRunning)
