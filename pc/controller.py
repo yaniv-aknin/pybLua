@@ -22,7 +22,7 @@ class Controller(MultiService):
         self.usb.setServiceParent(self)
         self.bluetooth = BluetoothController(bluetoothDevice)
         self.interactionController = interactionController
-    def load(self, path='master.recipe'):
+    def load(self, path='pybLua.recipe'):
         from lego import PROJECT_ROOT
         if os.path.isfile(os.path.join(PROJECT_ROOT, 'nxt', path)):
             path = (os.path.join(PROJECT_ROOT, 'nxt', path))
